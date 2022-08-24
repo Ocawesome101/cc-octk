@@ -165,7 +165,18 @@ function gui.Root:timedCallback(interval, callback)
 end
 
 function gui.Root:main()
-  error("TODO: main loop!")
+  self:_draw()
+  while true do
+    local sig = table.pack(os.pullEvent())
+    self:_draw(nil, nil, nil, nil, sig)
+  end
+end
+
+function gui.Root:exit()
+  self.term.setBackgroundColor(colors.black)
+  self.term.clear()
+  self.term.setCursorPos(1,1)
+  error()
 end
 
 function gui.Root:_draw(dx, dy, dw, dh, trigger)
