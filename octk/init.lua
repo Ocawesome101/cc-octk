@@ -319,7 +319,6 @@ function gui.Layout:_draw(dx, dy, dw, dh, event)
         local overW, overH
 
         if child._beg_to_differ then
-          --print(dw, dh, boxW, boxH, child.w, child.h, drawWp, drawHp)
           overW, overH = child:_beg_to_differ(drawWp, drawHp)
         end
 
@@ -329,7 +328,7 @@ function gui.Layout:_draw(dx, dy, dw, dh, event)
           child.percentW or (not not overW),
           child.percentH or (not not overH))
 
-        local drawX, drawY = position_accordingly(boxX, boxY, boxW, boxH,
+        local drawX, drawY = position_accordingly(boxX, boxY, overW or boxW, overH or boxH,
           child.x, child.y, drawW, drawH,
           child.percentX, child.percentY,
           child.centeredX, child.centeredY)
@@ -367,8 +366,7 @@ function gui.Label:text(text)
 end
 
 function gui.Label:_beg_to_differ(cw)
-  print(cw)
-  --return nil, #wrap(self._text.text, cw)
+  return nil, #wrap(self._text.text, cw)
 end
 
 function gui.Label:_draw(dx, dy, dw, dh)
