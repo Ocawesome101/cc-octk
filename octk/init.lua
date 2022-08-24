@@ -38,14 +38,6 @@ local function mk_obj_mt(name, self)
   }
 end
 
-local function base_object(name)
-  local obj = {}
-  local mt = mk_obj_mt(name, {})
-  mt.__name = "Base" .. mt.__name
-  mt.__index = nil
-  return setmetatable(obj, mt)
-end
-
 local function base_init(self, root)
   self.x = 1
   self.y = 1
@@ -77,6 +69,16 @@ local function pos_setter(self, x, y, p, c)
   self.posPercent = not not p
   self.centered = not not c
   return self
+end
+
+local function base_object(name)
+  local obj = {}
+  obj.size = size_setter
+  obj.position = pos_setter
+  local mt = mk_obj_mt(name, {})
+  mt.__name = "Base" .. mt.__name
+  mt.__index = nil
+  return setmetatable(obj, mt)
 end
 
 local function round(val)
@@ -125,8 +127,6 @@ end
 ---- gui.Root ----
 
 gui.Root = base_object "Root"
-gui.Root.size = size_setter
-gui.Root.position = pos_setter
 
 function gui.Root:init(term)
   expect(1, term, "table")
@@ -151,6 +151,13 @@ end
 
 function gui.Root:style(style)
   expect(1, style, "table")
+  field(style, "fg", "number")
+  field(style, "bg", "number")
+  field(style, "text", "number")
+  field(style, "image", "number")
+  field(style, "label", "number")
+  field(style, "layout", "number")
+  field(style, "clickable", "number")
   return self
 end
 
@@ -179,7 +186,7 @@ function gui.Root:exit()
   error()
 end
 
-function gui.Root:_draw(dx, dy, dw, dh, trigger)
+function gui.Root:_draw(dx, dy, dw, dh, event)
   local w, h = self.term.getSize()
   dx, dy, dw, dh = dx or 1, dy or 1, dw or w, dh or h
   fill(self.term, dx, dy, dw, dh, " ", self.style.fg, self.style.bg)
@@ -192,7 +199,7 @@ function gui.Root:_draw(dx, dy, dw, dh, trigger)
     local drawX, drawY = position_accordingly(dx, dy, dw, dh, child.x, child.y,
       drawW, drawH, child.posPercent, child.centered)
 
-    child:_draw(drawX, drawY, drawW, drawH, trigger or {})
+    child:_draw(drawX, drawY, drawW, drawH, event or {})
   end
 end
 
@@ -200,8 +207,6 @@ end
 ---- gui.Layout ----
 
 gui.Layout = base_object "Layout"
-gui.Layout.size = size_setter
-gui.Layout.position = pos_setter
 
 function gui.Layout:init(root)
   expect(1, root, "table")
@@ -246,7 +251,7 @@ function gui.Layout:set(row, col, object)
   return self
 end
 
-function gui.Layout:_draw(dx, dy, dw, dh, trigger)
+function gui.Layout:_draw(dx, dy, dw, dh, event)
   fill(self.root.term, dx, dy, dw, dh, " ",
     self.root.style.fg, self.root.style.layout)
 
@@ -263,7 +268,7 @@ function gui.Layout:_draw(dx, dy, dw, dh, trigger)
         local drawX, drawY = position_accordingly(boxX, boxY, boxW, boxH,
           box.x, box.y, drawW, drawH, box.posPercent, box.centered)
 
-        box:_draw(drawX, drawY, drawW, drawH, trigger)
+        box:_draw(drawX, drawY, drawW, drawH, event)
       end
     end
   end
@@ -273,8 +278,6 @@ end
 ---- gui.Label ----
 
 gui.Label = base_object "Label"
-gui.Label.size = size_setter
-gui.Label.position = pos_setter
 
 function gui.Label:init(root)
   base_init(self, root)
@@ -308,8 +311,6 @@ end
 ---- gui.Image ----
 
 gui.Image = base_object "Image"
-gui.Image.size = size_setter
-gui.Image.position = pos_setter
 
 function gui.Image:init()
   error("do not use octk.Image yet", 0)
@@ -319,8 +320,6 @@ end
 ---- gui.Clickable ----
 
 gui.Clickable = base_object "Clickable"
-gui.Clickable.size = size_setter
-gui.Clickable.position = pos_setter
 
 function gui.Clickable:init(root)
   base_init(self, root)
@@ -340,7 +339,7 @@ function gui.Clickable:child(obj)
   return self
 end
 
-function gui.Clickable:_draw(dx, dy, dw, dh, trigger)
+function gui.Clickable:_draw(dx, dy, dw, dh, event)
   fill(self.root.term, dx, dy, dw, dh, " ", self.root.style.fg,
     self.root.style.clickable)
 
@@ -354,12 +353,64 @@ function gui.Clickable:_draw(dx, dy, dw, dh, trigger)
     self._child:_draw(drawX, drawY, drawW, drawH)
   end
 
-  if trigger[1] == "mouse_click" then
-    local x, y = trigger[3], trigger[4]
+  if event[1] == "mouse_click" then
+    local x, y = event[3], event[4]
     if x >= dx and x <= (dx+dw-1) and y >= dy and y <= (dy+dh-1) then
-      self:callback(trigger[2])
+      self:callback(event[2])
     end
   end
+end
+
+
+---- gui.Toggle ----
+
+gui.Toggle = base_object "Toggle"
+
+function gui.Toggle:init(root)
+  base_init(self, root)
+  self.state = false
+  self._text = { text = "" }
+end
+
+function gui.Toggle:get()
+  return self.state
+end
+
+function gui.Toggle:set(bool)
+  expect(1, bool, "boolean")
+  self.state = bool
+  return self
+end
+
+function gui.Toggle:onFlip(func)
+  expect(1, func, "function")
+  self.flip = func
+  return self
+end
+
+function gui.Toggle:text(text)
+  gui.Label.text(self, text)
+  return self
+end
+
+function gui.Toggle:_draw(dx, dy, dw, dh, event)
+  gui.Label._draw(self, dx + 2, dy, dw, dh)
+  self.root.term.setCursorPos(dx, dy)
+  self.root.term.setTextColor(colors.black)
+  self.root.term.setBackgroundColor(colors.blue)
+  self.root.term.write(self.state and "\7" or "\8")
+  if event[1] == "mouse_click" then
+    local x, y = event[3], event[4]
+    if x >= dx and x <= (dx+dw-1) and y >= dy and y <= (dy+dh-1) then
+      self.state = not self.state
+      if self.flip then
+        self:flip()
+      end
+    end
+  end
+end
+
+function gui.Toggle:onFlip()
 end
 
 return gui

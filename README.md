@@ -36,10 +36,7 @@ All GUI objects use a "builder" syntax.  This allows more streamlined usage of c
     - `Clickable:onClick(func(obj, button))`:  Set the object's callback.
     - `Clickable:child(Object)`:  Set the child of the `Clickable`.
 
-## Examples
-
-```lua
-local gui = require("octk")
-
-local root = gui.Root(term.current())
-```
+  - `octk.Toggle(RootObject)`:  Creates a new toggleable object.
+    - `Toggle:set(bool)`:  Set the Toggle's flipped state.
+    - `Toggle:get()`:  Returns the Toggle's state.
+    - `Toggle:onFlip(func(obj))`:  Registers a function to be called when the object flips.
