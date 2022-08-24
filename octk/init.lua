@@ -394,11 +394,14 @@ function gui.Toggle:text(text)
 end
 
 function gui.Toggle:_draw(dx, dy, dw, dh, event)
-  gui.Label._draw(self, dx + 2, dy, dw, dh)
+  gui.Label._draw(self, dx + 4, dy, dw, dh)
   self.root.term.setCursorPos(dx, dy)
   self.root.term.setTextColor(colors.black)
-  self.root.term.setBackgroundColor(colors.blue)
-  self.root.term.write(self.state and "\7" or "\8")
+  self.root.term.setBackgroundColor(colors.white)
+  self.root.term.write("   ")
+  self.root.term.setBackgroundColor(self.state and colors.green or colors.gray)
+  self.root.term.setCursorPos(dx + (self.state and 0 or 1), dy)
+  self.root.term.write("  ")
   if event[1] == "mouse_click" then
     local x, y = event[3], event[4]
     if x >= dx and x <= (dx+dw-1) and y >= dy and y <= (dy+dh-1) then
@@ -408,9 +411,6 @@ function gui.Toggle:_draw(dx, dy, dw, dh, event)
       end
     end
   end
-end
-
-function gui.Toggle:onFlip()
 end
 
 return gui
