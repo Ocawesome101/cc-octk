@@ -242,7 +242,7 @@ function gui.Root:_draw(dx, dy, dw, dh, event)
       child.percentH or (not not overH))
 
     local drawX, drawY = position_accordingly(dx, dy, dw, dh,
-      child.x, child.y, drawW, drawH,
+      child.x, child.y, drawW, overH or drawH,
       child.percentX, child.percentY,
       child.centeredX, child.centeredY)
 
@@ -306,7 +306,7 @@ function gui.Layout:_draw(dx, dy, dw, dh, event)
   fill(self.root.term, dx, dy, dw, dh, " ",
     self.root.style.fg, self.root.style.layout)
 
-  local boxW, boxH = round(dx / self.cols), round(dh / self.rows)
+  local boxW, boxH = round(dw / self.cols), round(dh / self.rows)
 
   for row=1, self.rows do
     local curX = 0
@@ -328,13 +328,15 @@ function gui.Layout:_draw(dx, dy, dw, dh, event)
           child.percentW or (not not overW),
           child.percentH or (not not overH))
 
-        local drawX, drawY = position_accordingly(boxX, boxY, overW or boxW, overH or boxH,
+        local drawX, drawY = position_accordingly(
+          boxX, boxY, overW or boxW, overH or boxH,
           child.x, child.y, drawW, drawH,
           child.percentX, child.percentY,
           child.centeredX, child.centeredY)
 
         term.setBackgroundColor(self.root.style.layout)
         child:_draw(drawX, drawY, drawW, drawH, event)
+
         curX = curX + drawW
       end
     end
@@ -473,6 +475,7 @@ function gui.Toggle:_beg_to_differ()
 end
 
 function gui.Toggle:_draw(dx, dy, dw, dh, event)
+  print(dx, dy, dw, dh)
   self.root.term.setCursorPos(dx, dy)
   self.root.term.setTextColor(colors.black)
   self.root.term.setBackgroundColor(colors.white)
