@@ -205,6 +205,7 @@ function gui.Root:main()
   self:_draw()
   while true do
     local sig = table.pack(rawget(os, "pullEvent")())
+    self:_handle_event(nil, nil, nil, nil, sig)
     self:_draw(nil, nil, nil, nil, sig)
   end
 end
@@ -251,6 +252,14 @@ function gui.Root:_draw(dx, dy, dw, dh, event)
 
   if self.autovis and self.term.setVisible then
     self.term.setVisible(true)
+  end
+end
+
+function gui.Root:_handle_event(dx, dy, dw, dh, event)
+  dx, dy, dw, dh = dx or 1, dy or 1, self.term.getSize()
+  for i=1, #self._children do
+    local child = self._children[i]
+    child:_handle_event(dx, dy, dw, dh, event or {})
   end
 end
 
@@ -343,6 +352,18 @@ function gui.Layout:_draw(dx, dy, dw, dh, event)
   end
 end
 
+function gui.Layout:_handle_event(dx, dy, dw, dh, event)
+  for row=1, self.rows do
+    local curX = 0
+    for col=1, self.cols do
+      local child = self._slots[row][col]
+      if child then
+        child:_handle_event(dx, dy, dw, dh, event)
+      end
+    end
+  end
+end
+
 
 ---- gui.Label ----
 
@@ -379,6 +400,8 @@ function gui.Label:_draw(dx, dy, dw, dh)
     self.root.term.write(lines[i])
   end
 end
+
+function gui.Label:_handle_event(dx, dy, dw, dh, event) end
 
 
 ---- gui.Image ----
@@ -429,10 +452,15 @@ function gui.Clickable:_draw(dx, dy, dw, dh, event)
 
     self._child:_draw(drawX, drawY, drawW, drawH)
   end
+end
 
-  if event[1] == "mouse_click" then
+function gui.Clickable:_handle_event(dx, dy, dw, dh, event)
+  if event[1] == "mouse_click" or event[1] == "monitor_touch" then
     local x, y = event[3], event[4]
     if x >= dx and x <= (dx+dw-1) and y >= dy and y <= (dy+dh-1) then
+      if event[1] == "monitor_touch" then
+        event[2] = 1
+      end
       self:callback(event[2])
     end
   end
@@ -485,7 +513,10 @@ function gui.Toggle:_draw(dx, dy, dw, dh, event)
     self.root.style.toggleOff)
   self.root.term.setCursorPos(dx + (self.state and 0 or 1), dy)
   self.root.term.write("  ")
-  if event[1] == "mouse_click" then
+end
+
+function gui.Toggle:_handle_event(dx, dy, dw, dh, event)
+  if event[1] == "mouse_click" or event[1] == "monitor_touch" then
     local x, y = event[3], event[4]
     if x >= dx and x <= (dx+dw-1) and y >= dy and y <= (dy+dh-1) then
       self.state = not self.state
